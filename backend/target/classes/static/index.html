@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --primary: #1b4f72;
+      --primary-light: #d6eaf8;
+      --accent: #2e86c1;
+      --danger: #e74c3c;
+      --success: #27ae60;
+      --warning: #f39c12;
+      --text: #1a1a2e;
+      --muted: #6c757d;
+      --border: #dee2e6;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: 0.5px; }
+    header span { font-size: 0.85rem; opacity: 0.75; }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+
+    /* ── STATS CARDS ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--primary);
+    }
+    .stat-card.warning { border-left-color: var(--warning); }
+    .stat-card.success { border-left-color: var(--success); }
+    .stat-card.danger  { border-left-color: var(--danger); }
+    .stat-card .label  { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .stat-card .value  { font-size: 1.9rem; font-weight: 700; color: var(--primary); margin-top: 4px; }
+    .stat-card.warning .value { color: var(--warning); }
+    .stat-card.success .value { color: var(--success); }
+    .stat-card.danger  .value { color: var(--danger); }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    .toolbar input, .toolbar select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .toolbar input:focus, .toolbar select:focus { border-color: var(--accent); }
+    .toolbar input[type="text"] { flex: 1; min-width: 180px; }
+    .btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary  { background: var(--primary); color: #fff; }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-success  { background: var(--success); color: #fff; }
+    .btn-success:hover { opacity: 0.88; }
+    .btn-danger   { background: var(--danger);  color: #fff; }
+    .btn-danger:hover  { opacity: 0.88; }
+    .btn-warning  { background: var(--warning); color: #fff; }
+    .btn-sm { padding: 5px 12px; font-size: 0.82rem; }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--primary); color: #fff; }
+    thead th { padding: 13px 16px; text-align: left; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.4px; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .12s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--primary-light); }
+    tbody td { padding: 12px 16px; font-size: 0.9rem; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-ok      { background: #d5f5e3; color: #1e8449; }
+    .badge-low     { background: #fef9e7; color: #b7770d; }
+    .badge-out     { background: #fdedec; color: #cb4335; }
+    .actions { display: flex; gap: 6px; }
+    .empty { text-align: center; padding: 48px 16px; color: var(--muted); font-size: 0.95rem; }
+
+    /* ── MODAL ── */
+    .overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.show { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 480px;
+      padding: 28px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      position: relative;
+    }
+    .modal h2 { font-size: 1.15rem; margin-bottom: 20px; color: var(--primary); }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.83rem; font-weight: 600; margin-bottom: 5px; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color .2s;
+      font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .close-btn { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); }
+    .close-btn:hover { color: var(--danger); }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 500;
+      z-index: 999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all .3s ease;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { background: var(--success); }
+    #toast.error   { background: var(--danger); }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      thead th:nth-child(3), tbody td:nth-child(3),
+      thead th:nth-child(5), tbody td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📦 Inventory Tracker</h1>
+  <span id="header-time"></span>
+</header>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Products</div>
+      <div class="value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card success">
+      <div class="label">Total Stock</div>
+      <div class="value" id="stat-qty">—</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="label">Low Stock</div>
+      <div class="value" id="stat-low">—</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="label">Out of Stock</div>
+      <div class="value" id="stat-out">—</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input type="text" id="search-input" placeholder="🔍  Search products..." oninput="filterTable()" />
+    <select id="cat-filter" onchange="filterTable()">
+      <option value="">All Categories</option>
+    </select>
+    <select id="stock-filter" onchange="filterTable()">
+      <option value="">All Stock</option>
+      <option value="low">Low Stock (≤5)</option>
+      <option value="out">Out of Stock</option>
+    </select>
+    <button class="btn btn-success" onclick="openModal()">+ Add Product</button>
+    <button class="btn btn-warning" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table id="product-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Qty</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="8" class="empty">Loading products...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="modal-overlay" onclick="closeOnOverlay(event)">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal()">×</button>
+    <h2 id="modal-title">Add Product</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Product Name *</label>
+        <input type="text" id="f-name" placeholder="e.g. Laptop" />
+      </div>
+      <div class="form-group">
+        <label>SKU</label>
+        <input type="text" id="f-sku" placeholder="e.g. LAP-001" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="f-desc" rows="2" placeholder="Optional description..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Price (₹) *</label>
+        <input type="number" id="f-price" placeholder="0.00" min="0" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>Quantity *</label>
+        <input type="number" id="f-qty" placeholder="0" min="0" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <input type="text" id="f-cat" placeholder="e.g. Electronics" list="cat-list" />
+      <datalist id="cat-list"></datalist>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-success" onclick="saveProduct()">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+  const API = 'http://172.22.100.39:8080/api/products';
+  let allProducts = [];
+  let editingId = null;
+
+  // ── Startup ──────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    loadProducts();
+    updateClock();
+    setInterval(updateClock, 1000);
+  });
+
+  function updateClock() {
+    document.getElementById('header-time').textContent =
+      new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  // ── Load products from backend ───────────────────────────────────────────
+  async function loadProducts() {
+    try {
+      const res = await fetch(API);
+      if (!res.ok) throw new Error('Server error');
+      allProducts = await res.json();
+      renderTable(allProducts);
+      updateStats(allProducts);
+      updateCategoryFilter(allProducts);
+    } catch (e) {
+      document.getElementById('table-body').innerHTML =
+        `<tr><td colspan="8" class="empty">⚠️ Cannot connect to backend. Make sure Java server is running on port 8080.</td></tr>`;
+    }
+  }
+
+  // ── Render table ─────────────────────────────────────────────────────────
+  function renderTable(products) {
+    const tbody = document.getElementById('table-body');
+    if (!products.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty">No products found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = products.map((p, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td><strong>${esc(p.name)}</strong>${p.description ? `<br><small style="color:var(--muted)">${esc(p.description.substring(0,50))}${p.description.length>50?'…':''}</small>` : ''}</td>
+        <td><code style="font-size:0.8rem;color:var(--accent)">${esc(p.sku || '—')}</code></td>
+        <td>${esc(p.category || '—')}</td>
+        <td><strong>₹${Number(p.price).toLocaleString('en-IN', {minimumFractionDigits:2})}</strong></td>
+        <td>${p.quantity}</td>
+        <td>${stockBadge(p.quantity)}</td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-primary btn-sm" onclick="editProduct(${p.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id}, '${esc(p.name)}')">Del</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function stockBadge(qty) {
+    if (qty === 0)  return '<span class="badge badge-out">Out of Stock</span>';
+    if (qty <= 5)   return '<span class="badge badge-low">Low Stock</span>';
+    return '<span class="badge badge-ok">In Stock</span>';
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+  function updateStats(products) {
+    document.getElementById('stat-total').textContent = products.length;
+    document.getElementById('stat-qty').textContent   = products.reduce((s, p) => s + p.quantity, 0).toLocaleString();
+    document.getElementById('stat-low').textContent   = products.filter(p => p.quantity > 0 && p.quantity <= 5).length;
+    document.getElementById('stat-out').textContent   = products.filter(p => p.quantity === 0).length;
+  }
+
+  // ── Category filter dropdown ─────────────────────────────────────────────
+  function updateCategoryFilter(products) {
+    const cats = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
+    const sel = document.getElementById('cat-filter');
+    sel.innerHTML = '<option value="">All Categories</option>' +
+      cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    const dl = document.getElementById('cat-list');
+    dl.innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+  }
+
+  // ── Client-side filter ───────────────────────────────────────────────────
+  function filterTable() {
+    const q    = document.getElementById('search-input').value.toLowerCase();
+    const cat  = document.getElementById('cat-filter').value;
+    const stock= document.getElementById('stock-filter').value;
+    const filtered = allProducts.filter(p => {
+      const matchName = p.name.toLowerCase().includes(q) ||
+                        (p.sku && p.sku.toLowerCase().includes(q)) ||
+                        (p.description && p.description.toLowerCase().includes(q));
+      const matchCat  = !cat  || p.category === cat;
+      const matchStock= !stock ||
+                        (stock === 'out' && p.quantity === 0) ||
+                        (stock === 'low' && p.quantity > 0 && p.quantity <= 5);
+      return matchName && matchCat && matchStock;
+    });
+    renderTable(filtered);
+    updateStats(filtered);
+  }
+
+  // ── Modal ────────────────────────────────────────────────────────────────
+  function openModal(product = null) {
+    editingId = product ? product.id : null;
+    document.getElementById('modal-title').textContent = product ? 'Edit Product' : 'Add Product';
+    document.getElementById('f-name').value  = product?.name        || '';
+    document.getElementById('f-sku').value   = product?.sku         || '';
+    document.getElementById('f-desc').value  = product?.description || '';
+    document.getElementById('f-price').value = product?.price       || '';
+    document.getElementById('f-qty').value   = product?.quantity    ?? '';
+    document.getElementById('f-cat').value   = product?.category    || '';
+    document.getElementById('modal-overlay').classList.add('show');
+    setTimeout(() => document.getElementById('f-name').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('show');
+    editingId = null;
+  }
+
+  function closeOnOverlay(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  // ── Save (create or update) ──────────────────────────────────────────────
+  async function saveProduct() {
+    const name  = document.getElementById('f-name').value.trim();
+    const price = document.getElementById('f-price').value;
+    const qty   = document.getElementById('f-qty').value;
+
+    if (!name)  { showToast('Product name is required', 'error'); return; }
+    if (!price) { showToast('Price is required', 'error'); return; }
+    if (qty === '') { showToast('Quantity is required', 'error'); return; }
+
+    const payload = {
+      name,
+      sku:         document.getElementById('f-sku').value.trim()   || null,
+      description: document.getElementById('f-desc').value.trim()  || null,
+      price:       parseFloat(price),
+      quantity:    parseInt(qty),
+      category:    document.getElementById('f-cat').value.trim()   || null
+    };
+
+    try {
+      const url    = editingId ? `${API}/${editingId}` : API;
+      const method = editingId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Save failed');
+      }
+      closeModal();
+      showToast(editingId ? 'Product updated!' : 'Product added!', 'success');
+      loadProducts();
+    } catch (e) {
+      showToast('Error: ' + e.message, 'error');
+    }
+  }
+
+  // ── Edit ─────────────────────────────────────────────────────────────────
+  async function editProduct(id) {
+    try {
+      const res = await fetch(`${API}/${id}`);
+      const product = await res.json();
+      openModal(product);
+    } catch {
+      showToast('Could not load product', 'error');
+    }
+  }
+
+  // ── Delete ───────────────────────────────────────────────────────────────
+  async function deleteProduct(id, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      showToast('Product deleted', 'success');
+      loadProducts();
+    } catch {
+      showToast('Delete failed', 'error');
+    }
+  }
+
+  // ── Export CSV ───────────────────────────────────────────────────────────
+  function exportCSV() {
+    if (!allProducts.length) { showToast('No products to export', 'error'); return; }
+    const headers = ['ID','Name','SKU','Category','Price','Quantity','Description'];
+    const rows = allProducts.map(p => [
+      p.id, `"${p.name}"`, p.sku||'', p.category||'',
+      p.price, p.quantity, `"${(p.description||'').replace(/"/g,'""')}"`
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = `inventory_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    showToast('CSV exported!', 'success');
+  }
+
+  // ── Toast notification ───────────────────────────────────────────────────
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    setTimeout(() => { t.className = ''; }, 3000);
+  }
+
+  // ── Escape HTML ──────────────────────────────────────────────────────────
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Keyboard shortcut: Escape closes modal ───────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
+</body>
+</html>
