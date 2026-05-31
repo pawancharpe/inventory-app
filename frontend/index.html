@@ -25,6 +25,70 @@
 
     body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); }
 
+    /* ── LOGIN PAGE ── */
+    #login-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1b4f72 0%, #2e86c1 100%);
+    }
+    .login-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    .login-box .logo { font-size: 2.5rem; margin-bottom: 8px; }
+    .login-box h2 { font-size: 1.4rem; color: var(--primary); margin-bottom: 4px; }
+    .login-box p { font-size: 0.85rem; color: var(--muted); margin-bottom: 28px; }
+    .login-box .form-group { margin-bottom: 16px; text-align: left; }
+    .login-box label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+    .login-box input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .login-box input:focus { border-color: var(--accent); }
+    .login-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity .2s;
+    }
+    .login-btn:hover { opacity: 0.88; }
+    .login-error {
+      color: var(--danger);
+      font-size: 0.85rem;
+      margin-top: 12px;
+      display: none;
+    }
+    .login-error.show { display: block; }
+    .view-only-hint {
+      margin-top: 20px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* ── MAIN APP ── */
+    #app-page { display: none; }
+
     /* ── HEADER ── */
     header {
       background: var(--primary);
@@ -37,7 +101,26 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     header h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: 0.5px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
     header span { font-size: 0.85rem; opacity: 0.75; }
+    .user-badge {
+      background: rgba(255,255,255,0.15);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .logout-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.25); }
 
     /* ── LAYOUT ── */
     .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
@@ -100,6 +183,19 @@
     .btn-danger:hover  { opacity: 0.88; }
     .btn-warning  { background: var(--warning); color: #fff; }
     .btn-sm { padding: 5px 12px; font-size: 0.82rem; }
+
+    /* ── READ ONLY BANNER ── */
+    .readonly-banner {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: var(--radius);
+      padding: 10px 18px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      color: #7d6608;
+      display: none;
+    }
+    .readonly-banner.show { display: block; }
 
     /* ── TABLE ── */
     .table-wrap {
@@ -193,12 +289,44 @@
 </head>
 <body>
 
+<!-- ═══════════════════════════ LOGIN PAGE ═══════════════════════════ -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="logo">📦</div>
+    <h2>Inventory Tracker</h2>
+    <p>Sign in to manage your inventory</p>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="Enter username" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Enter password" onkeydown="if(event.key==='Enter') doLogin()" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">Login as Admin</button>
+    <div class="login-error" id="login-error">❌ Invalid username or password</div>
+    <div class="view-only-hint" onclick="viewOnly()">👁 View only (no login required)</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MAIN APP ═══════════════════════════ -->
+<div id="app-page">
+
 <header>
   <h1>📦 Inventory Tracker</h1>
-  <span id="header-time"></span>
+  <div class="header-right">
+    <span id="header-time"></span>
+    <span class="user-badge" id="user-badge"></span>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
 </header>
 
 <div class="container">
+
+  <!-- Read-only banner -->
+  <div class="readonly-banner" id="readonly-banner">
+    👁 You are in <strong>View Only</strong> mode. Login as admin to add, edit, or delete products.
+  </div>
 
   <!-- Stats -->
   <div class="stats">
@@ -231,7 +359,7 @@
       <option value="low">Low Stock (≤5)</option>
       <option value="out">Out of Stock</option>
     </select>
-    <button class="btn btn-success" onclick="openModal()">+ Add Product</button>
+    <button class="btn btn-success" id="btn-add" onclick="openModal()">+ Add Product</button>
     <button class="btn btn-warning" onclick="exportCSV()">⬇ Export CSV</button>
   </div>
 
@@ -247,7 +375,7 @@
           <th>Price</th>
           <th>Qty</th>
           <th>Status</th>
-          <th>Actions</th>
+          <th id="actions-header">Actions</th>
         </tr>
       </thead>
       <tbody id="table-body">
@@ -298,27 +426,66 @@
   </div>
 </div>
 
+</div> <!-- end app-page -->
+
 <!-- Toast -->
 <div id="toast"></div>
 
 <script>
- const API = 'https://inventory-app-production-3f13.up.railway.app/api/products';
+  const API = 'https://inventory-app-production-3f13.up.railway.app/api/products';
+
+  // ── Auth ─────────────────────────────────────────────────────────────────
+  const ADMIN_USER = 'pawan1002';
+  const ADMIN_PASS = 'Admin@1234';
+  let isAdmin = false;
   let allProducts = [];
   let editingId = null;
 
-  // ── Startup ──────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
+  function doLogin() {
+    const u = document.getElementById('login-username').value.trim();
+    const p = document.getElementById('login-password').value;
+    if (u === ADMIN_USER && p === ADMIN_PASS) {
+      isAdmin = true;
+      showApp('Admin');
+    } else {
+      document.getElementById('login-error').classList.add('show');
+    }
+  }
+
+  function viewOnly() {
+    isAdmin = false;
+    showApp('Viewer');
+  }
+
+  function showApp(role) {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app-page').style.display = 'block';
+    document.getElementById('user-badge').textContent = isAdmin ? '👤 Admin' : '👁 View Only';
+
+    // Show/hide admin controls
+    document.getElementById('btn-add').style.display = isAdmin ? '' : 'none';
+    document.getElementById('readonly-banner').classList.toggle('show', !isAdmin);
+
     loadProducts();
     updateClock();
     setInterval(updateClock, 1000);
-  });
+  }
+
+  function doLogout() {
+    isAdmin = false;
+    document.getElementById('login-page').style.display = 'flex';
+    document.getElementById('app-page').style.display = 'none';
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').classList.remove('show');
+  }
 
   function updateClock() {
     document.getElementById('header-time').textContent =
       new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
   }
 
-  // ── Load products from backend ───────────────────────────────────────────
+  // ── Load products ────────────────────────────────────────────────────────
   async function loadProducts() {
     try {
       const res = await fetch(API);
@@ -329,7 +496,7 @@
       updateCategoryFilter(allProducts);
     } catch (e) {
       document.getElementById('table-body').innerHTML =
-        `<tr><td colspan="8" class="empty">⚠️ Cannot connect to backend. Make sure Java server is running on port 8080.</td></tr>`;
+        `<tr><td colspan="8" class="empty">⚠️ Cannot connect to backend.</td></tr>`;
     }
   }
 
@@ -350,10 +517,11 @@
         <td>${p.quantity}</td>
         <td>${stockBadge(p.quantity)}</td>
         <td>
+          ${isAdmin ? `
           <div class="actions">
             <button class="btn btn-primary btn-sm" onclick="editProduct(${p.id})">Edit</button>
             <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id}, '${esc(p.name)}')">Del</button>
-          </div>
+          </div>` : '<span style="color:var(--muted);font-size:0.8rem">—</span>'}
         </td>
       </tr>`).join('');
   }
@@ -372,7 +540,7 @@
     document.getElementById('stat-out').textContent   = products.filter(p => p.quantity === 0).length;
   }
 
-  // ── Category filter dropdown ─────────────────────────────────────────────
+  // ── Category filter ──────────────────────────────────────────────────────
   function updateCategoryFilter(products) {
     const cats = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
     const sel = document.getElementById('cat-filter');
@@ -382,7 +550,7 @@
     dl.innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
   }
 
-  // ── Client-side filter ───────────────────────────────────────────────────
+  // ── Filter ───────────────────────────────────────────────────────────────
   function filterTable() {
     const q    = document.getElementById('search-input').value.toLowerCase();
     const cat  = document.getElementById('cat-filter').value;
@@ -403,6 +571,7 @@
 
   // ── Modal ────────────────────────────────────────────────────────────────
   function openModal(product = null) {
+    if (!isAdmin) { showToast('Admin login required', 'error'); return; }
     editingId = product ? product.id : null;
     document.getElementById('modal-title').textContent = product ? 'Edit Product' : 'Add Product';
     document.getElementById('f-name').value  = product?.name        || '';
@@ -424,25 +593,23 @@
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   }
 
-  // ── Save (create or update) ──────────────────────────────────────────────
+  // ── Save ─────────────────────────────────────────────────────────────────
   async function saveProduct() {
+    if (!isAdmin) return;
     const name  = document.getElementById('f-name').value.trim();
     const price = document.getElementById('f-price').value;
     const qty   = document.getElementById('f-qty').value;
-
     if (!name)  { showToast('Product name is required', 'error'); return; }
     if (!price) { showToast('Price is required', 'error'); return; }
     if (qty === '') { showToast('Quantity is required', 'error'); return; }
-
     const payload = {
       name,
-      sku:         document.getElementById('f-sku').value.trim()   || null,
-      description: document.getElementById('f-desc').value.trim()  || null,
+      sku:         document.getElementById('f-sku').value.trim()  || null,
+      description: document.getElementById('f-desc').value.trim() || null,
       price:       parseFloat(price),
       quantity:    parseInt(qty),
-      category:    document.getElementById('f-cat').value.trim()   || null
+      category:    document.getElementById('f-cat').value.trim()  || null
     };
-
     try {
       const url    = editingId ? `${API}/${editingId}` : API;
       const method = editingId ? 'PUT' : 'POST';
@@ -451,10 +618,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Save failed');
-      }
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || 'Save failed'); }
       closeModal();
       showToast(editingId ? 'Product updated!' : 'Product added!', 'success');
       loadProducts();
@@ -465,26 +629,24 @@
 
   // ── Edit ─────────────────────────────────────────────────────────────────
   async function editProduct(id) {
+    if (!isAdmin) return;
     try {
       const res = await fetch(`${API}/${id}`);
       const product = await res.json();
       openModal(product);
-    } catch {
-      showToast('Could not load product', 'error');
-    }
+    } catch { showToast('Could not load product', 'error'); }
   }
 
   // ── Delete ───────────────────────────────────────────────────────────────
   async function deleteProduct(id, name) {
+    if (!isAdmin) return;
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
     try {
       const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       showToast('Product deleted', 'success');
       loadProducts();
-    } catch {
-      showToast('Delete failed', 'error');
-    }
+    } catch { showToast('Delete failed', 'error'); }
   }
 
   // ── Export CSV ───────────────────────────────────────────────────────────
@@ -503,7 +665,7 @@
     showToast('CSV exported!', 'success');
   }
 
-  // ── Toast notification ───────────────────────────────────────────────────
+  // ── Toast ────────────────────────────────────────────────────────────────
   function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -511,13 +673,11 @@
     setTimeout(() => { t.className = ''; }, 3000);
   }
 
-  // ── Escape HTML ──────────────────────────────────────────────────────────
   function esc(s) {
     if (!s) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // ── Keyboard shortcut: Escape closes modal ───────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeModal();
   });
